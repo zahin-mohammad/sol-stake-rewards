@@ -23,6 +23,13 @@
   "homepage": "https://github.com/zahin-mohammad/sol-stake-rewards#readme",
   "devDependencies": {
     "ts-node": "^10.9.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.2.2",
+    "typescript-cached-transpile": "^0.0.6"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.87.6",
+    "csv": "^6.3.5",
+    "csv-writer": "^1.6.0",
+    "dotenv": "^16.3.1"
   }
 }
