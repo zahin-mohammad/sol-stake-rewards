@@ -47,11 +47,14 @@ async function main() {
       },
     ],
   });
+  const epochInfo = await connection.getEpochInfo("confirmed");
+
   console.log(
     `Processing ${
       stakeAccounts.length
-    } stake accounts for wallet: ${config.wallet.toBase58()}}`
+    } stake accounts for wallet: ${config.wallet.toBase58()}} from epoch ${epochInfo.epoch}`
   );
+  
   const walletRewards: CsvRow[] = [];
   for (const stakeAccount of stakeAccounts) {
     const stake = await connection.getParsedAccountInfo(
@@ -68,17 +71,23 @@ async function main() {
       continue;
     }
     const activationEpoch = parseInt(activationEpochStr);
-    let queryEpoch: number | undefined = undefined;
+    let queryEpoch: number = epochInfo.epoch - 1;
     const stakeAccountRewards: CsvRow[] = [];
     console.log(
-      `looping through all epochs for stake account ${stakeAccount.pubkey.toBase58()} from current epoch to ${activationEpoch}`
+      `looping through all epochs for stake account ${stakeAccount.pubkey.toBase58()} from epoch ${queryEpoch} to ${activationEpoch}`
     );
     while (true) {
+      if (queryEpoch < activationEpoch) {
+        break;
+      }
+      console.log(`\tquerying epoch ${queryEpoch}`)
       const reward: InflationReward | null = (
         await connection.getInflationReward([stakeAccount.pubkey], queryEpoch)
       )[0];
       if (!reward) {
-        break;
+        console.log(`\tno rewards found for epoch ${queryEpoch}, continuing...`)
+        queryEpoch = queryEpoch - 1;
+        continue;
       }
       console.log(`\tgot reward on epoch ${reward.epoch}`);
       walletRewards.push({
@@ -89,10 +98,7 @@ async function main() {
         stakeAccount: stakeAccount.pubkey.toBase58(),
         ...reward,
       });
-      if (reward.epoch == activationEpoch) {
-        break;
-      }
-      queryEpoch = reward.epoch - 1;
+      queryEpoch = queryEpoch - 1;
     }
     // Create a CSV writer instance
     const csvWriter = createObjectCsvWriter({
